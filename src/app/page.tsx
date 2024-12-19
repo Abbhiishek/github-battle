@@ -1,101 +1,133 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Swords, Github } from 'lucide-react';
+import { fetchGitHubUserData } from '@/lib/github';
+import { generateComparison } from '@/lib/openai';
+import { UserComparison } from '@/components/user-comparison';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    const [username1, setUsername1] = useState('');
+    const [username2, setUsername2] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [comparisonData, setComparisonData] = useState<{
+        user1: any;
+        user2: any;
+        roasts: any[];
+    } | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    const handleCompare = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username1 || !username2) {
+            setError('Please enter both usernames');
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const user1Data = await fetchGitHubUserData(username1);
+            const user2Data = await fetchGitHubUserData(username2);
+            const roasts = await generateComparison(user1Data, user2Data);
+
+            setComparisonData({
+                user1: user1Data,
+                user2: user2Data,
+                roasts,
+            });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch comparison');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <main className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+            <div className="container mx-auto px-4 py-16">
+                <div className="max-w-2xl mx-auto text-center mb-12">
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="flex items-center justify-center gap-4 mb-6"
+                    >
+                        <div className="relative">
+                            <Github className="w-12 h-12 text-purple-400" />
+                            <motion.div
+                                initial={{ rotate: -45, x: 10 }}
+                                animate={{ rotate: 0, x: 0 }}
+                                transition={{ delay: 0.3, duration: 0.5 }}
+                                className="absolute -bottom-2 -right-2"
+                            >
+                                <Swords className="w-8 h-8 text-pink-400" />
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                    <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                        GitHub Battle
+                    </h1>
+                    <p className="text-lg text-gray-300 mb-8">
+                        Compare GitHub profiles and get hilarious AI-generated roasts!
+                    </p>
+
+                    <form onSubmit={handleCompare} className="space-y-4">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <input
+                                type="text"
+                                value={username1}
+                                onChange={(e) => setUsername1(e.target.value)}
+                                placeholder="First GitHub username"
+                                className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 focus:border-purple-500 focus:outline-none"
+                            />
+                            <span className="hidden md:inline text-2xl font-bold text-purple-400">
+                                VS
+                            </span>
+                            <input
+                                type="text"
+                                value={username2}
+                                onChange={(e) => setUsername2(e.target.value)}
+                                placeholder="Second GitHub username"
+                                className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 focus:border-pink-500 focus:outline-none"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className={`px-8 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 font-semibold transform transition-all ${
+                                isLoading
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:scale-105 hover:shadow-lg'
+                            }`}
+                        >
+                            {isLoading ? 'Loading...' : 'Compare Profiles'}
+                        </button>
+                    </form>
+
+                    {error && (
+                        <div className="mt-4 text-red-400 bg-red-400/10 p-4 rounded-lg">
+                            {error}
+                        </div>
+                    )}
+                </div>
+
+                {comparisonData && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <UserComparison
+                            user1={comparisonData.user1}
+                            user2={comparisonData.user2}
+                            roasts={comparisonData.roasts}
+                        />
+                    </motion.div>
+                )}
+            </div>
+        </main>
+    );
 }
