@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Swords, Github } from 'lucide-react';
 import { fetchGitHubUserData, GitHubUserData } from '@/lib/github';
 import { ComparisonRoast, generateComparison } from '@/lib/openai';
 import { UserComparison } from '@/components/user-comparison';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [username1, setUsername1] = useState('');
-  const [username2, setUsername2] = useState('');
+  let [username1, setUsername1] = useState('');
+  let[username2, setUsername2] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [comparisonData, setComparisonData] = useState<{
@@ -18,8 +19,29 @@ export default function Home() {
     roasts: ComparisonRoast[];
   } | null>(null);
 
-  const handleCompare = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const router = useRouter();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const u1 = urlParams.get('u1');
+    const u2 = urlParams.get('u2');
+  
+    // console.log('u1:', u1, 'u2:', u2);  
+    //commenting logs for push
+  
+    if (u1 && u2) {
+      setUsername1(u1);
+      setUsername2(u2);
+      username1 = u1;
+      username2 = u2;
+      handleCompare(); // Automatically start comparison if we have a valid u1 and u2 .. let's see
+    }
+  }, []);
+  
+  const handleCompare = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    console.log("user1", username1, "user2", username2);
+    //commenting the console for push
     if (!username1 || !username2) {
       setError('Please enter both usernames');
       return;
