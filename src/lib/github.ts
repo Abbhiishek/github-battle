@@ -82,7 +82,9 @@ async function fetchContributionData(username: string): Promise<{
     const contributionDays: ContributionDay[] = [];
     const monthlyMap = new Map<string, number>();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     calendar.weeks.forEach((week: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         week.contributionDays.forEach((day: any) => {
             const date = new Date(day.date);
             const monthKey = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -157,12 +159,12 @@ async function calculateTotalCommits(username: string): Promise<number> {
                     owner: username,
                     repo: repo.name,
                     author: username,
-                    per_page: 1,
+                    per_page: 100,
                 });
 
-                // Get the total count from response headers
-                const match = commits?.response?.headers?.link?.match(/page=(\d+)>; rel="last"/);
-                return match ? parseInt(match[1], 10) : commits?.length || 0;
+                // // Get the total count from response headers
+                // const match = commits?.response?.headers?.link?.match(/page=(\d+)>; rel="last"/);
+                return commits?.length || 0;
             }
 
             // Sum up owner's commits from participation stats
