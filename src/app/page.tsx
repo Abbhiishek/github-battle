@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Swords, Github } from 'lucide-react';
 import { fetchGitHubUserData, GitHubUserData } from '@/lib/github';
 import { ComparisonRoast, generateComparison } from '@/lib/openai';
+import { isValidGitHubUsername } from '@/lib/validate';
 import { UserComparison } from '@/components/user-comparison';
+import React from 'react';
 
 export default function Home() {
   const [username1, setUsername1] = useState('');
@@ -18,9 +20,29 @@ export default function Home() {
     roasts: ComparisonRoast[];
   } | null>(null);
 
-  const handleCompare = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username1 || !username2) {
+  // Handle URL parameters on initial load
+  useEffect(() => {
+    const handleParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const u1 = urlParams.get('u1');
+      const u2 = urlParams.get('u2');
+      if (u1 && u2 && isValidGitHubUsername(u1) && isValidGitHubUsername(u2)) {
+        setUsername1(u1);
+        setUsername2(u2);
+        handleCompare(u1, u2); // Trigger comparison if valid usernames are detected in the URL
+      }
+    };
+
+    handleParams();
+    window.addEventListener('popstate', handleParams);
+    return () => window.removeEventListener('popstate', handleParams);
+  }, []);
+
+  const handleCompare = async (u1?: string, u2?: string) => {
+    const user1 = u1 || username1;
+    const user2 = u2 || username2;
+
+    if (!user1 || !user2) {
       setError('Please enter both usernames');
       return;
     }
@@ -29,8 +51,8 @@ export default function Home() {
     setError(null);
 
     try {
-      const user1Data = await fetchGitHubUserData(username1);
-      const user2Data = await fetchGitHubUserData(username2);
+      const user1Data = await fetchGitHubUserData(user1);
+      const user2Data = await fetchGitHubUserData(user2);
       const roasts = await generateComparison(user1Data, user2Data);
 
       setComparisonData({
@@ -39,7 +61,7 @@ export default function Home() {
         roasts,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch comparison');
+      setError('Failed to fetch comparison data. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +96,13 @@ export default function Home() {
             Compare GitHub profiles and get hilarious AI-generated roasts!
           </p>
 
-          <form onSubmit={handleCompare} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCompare();
+            }}
+            className="space-y-4"
+          >
             <div className="flex flex-col md:flex-row gap-4">
               <input
                 type="text"
